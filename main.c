@@ -6,14 +6,26 @@
 #include <stdlib.h>
 #include <sys/timerfd.h>
 
-void emit_msg()
+
+void hang()
 {
-	printf("Emit from pid %zu: bijour\n", getpid());
+	fprintf(stderr, "."); for (int i = 0; i < 1000000000; i++) {
+		// do nothing
+		asm("");
+	}
+	fprintf(stderr, "\n");
+}
+
+void emit_msg(char* message)
+{
+	hang();
+	printf("Emittin msg: '%s', from pid %zu: bijour\n", message, getpid());
 }
 
 // write the message to stderr
 void on_receive_msg()
 {
+	hang();
 	ssize_t ret_read;
 	char buff[100];
 	memset(buff, 0, sizeof buff);
@@ -26,8 +38,15 @@ void on_receive_msg()
 }
 
 
-int main(void)
+int main(int argc, char **argv)
 {
+	char message[128];
+	if (argc >= 2) {
+		strcpy(message, argv[1]);
+	} else {
+		strcpy(message, "basic message");
+	}
+
 	int     ret_poll;
 
 	// setup a timer as a file descriptor (to poll it)
@@ -68,7 +87,7 @@ int main(void)
 			if (input[1].revents & POLLIN) // timer ends -> write to stdout
 			{
 				read(timer_fd, dummyBuf, 8); // read timer to restart the count
-				emit_msg();
+				emit_msg(message);
 			}
 		}
 		fflush(stdout);
